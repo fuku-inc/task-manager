@@ -170,4 +170,72 @@ describe('Core Tasks', () => {
       await expect(tasks.deleteTask('non-existent')).rejects.toThrow('タスク "non-existent" が見つかりません');
     });
   });
+
+  describe('updateTask', () => {
+    it('タスクを更新する', async () => {
+      const mockTask = {
+        path: '/tasks/todo/task.md',
+        status: 'todo' as const
+      };
+      
+      const mockTasks = [mockTask];
+      const mockMetadata = { 
+        id: 'task-123',
+        title: '元のタイトル',
+        priority: 'medium' as const,
+        project: 'default',
+        due_date: '',
+        created_at: '2025-04-01',
+        tags: []
+      };
+      
+      const updateTaskFileMock = jest.fn();
+      
+      (taskUtils.listTasks as jest.Mock).mockReturnValue(mockTasks);
+      (taskUtils.parseTaskMetadata as jest.Mock).mockReturnValue(mockMetadata);
+      (taskUtils as any).updateTaskFile = updateTaskFileMock;
+      
+      const updates = {
+        title: '新しいタイトル',
+        description: '新しい説明',
+        priority: 'high' as const,
+        dueDate: new Date('2025-05-01')
+      };
+      
+      await tasks.updateTask('task-123', updates);
+      
+      expect(taskUtils.listTasks).toHaveBeenCalledWith('all');
+      expect(taskUtils.parseTaskMetadata).toHaveBeenCalledWith(mockTask.path);
+      expect(updateTaskFileMock).toHaveBeenCalledWith(
+        mockTask.path,
+        expect.objectContaining({
+          title: '新しいタイトル',
+          description: '新しい説明',
+          priority: 'high',
+          due_date: '2025-05-01'
+        })
+      );
+    });
+    
+    it('タスクが見つからない場合はエラーをスローする', async () => {
+      (taskUtils.listTasks as jest.Mock).mockReturnValue([]);
+      
+      await expect(tasks.updateTask('non-existent', { title: '新しいタイトル' })).rejects.toThrow('タスク "non-existent" が見つかりません');
+    });
+    
+    it('更新内容が空の場合はエラーをスローする', async () => {
+      const mockTask = {
+        path: '/tasks/todo/task.md',
+        status: 'todo' as const
+      };
+      
+      const mockTasks = [mockTask];
+      const mockMetadata = { id: 'task-123' };
+      
+      (taskUtils.listTasks as jest.Mock).mockReturnValue(mockTasks);
+      (taskUtils.parseTaskMetadata as jest.Mock).mockReturnValue(mockMetadata);
+      
+      await expect(tasks.updateTask('task-123', {})).rejects.toThrow('更新内容が指定されていません');
+    });
+  });
 }); 

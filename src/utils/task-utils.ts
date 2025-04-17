@@ -343,4 +343,135 @@ export function deleteTaskFile(filePath: string): void {
   }
   
   fs.unlinkSync(filePath);
+}
+
+/**
+ * タスクファイルを更新する
+ * @param filePath タスクファイルのパス
+ * @param updates 更新内容
+ */
+export function updateTaskFile(filePath: string, updates: Partial<TaskMetadata & { description?: string }>): void {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`タスクファイル ${filePath} が見つかりません`);
+  }
+  
+  // ファイルの内容を読み込む
+  const content = fs.readFileSync(filePath, 'utf8');
+  
+  // メタデータ部分と本文を分離
+  const metadataMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!metadataMatch) {
+    throw new Error(`タスクファイル ${filePath} の形式が不正です`);
+  }
+  
+  const [, metadataStr, bodyContent] = metadataMatch;
+  
+  // 現在のメタデータを解析
+  const currentMetadata: Record<string, any> = {};
+  metadataStr.split('\n').forEach(line => {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex > 0) {
+      const key = line.substring(0, colonIndex).trim();
+      let value = line.substring(colonIndex + 1).trim();
+      
+      // 配列の処理
+      if (key === 'tags' && value.startsWith('[') && value.endsWith(']')) {
+        try {
+          currentMetadata[key] = JSON.parse(value);
+        } catch (e) {
+          currentMetadata[key] = value.substring(1, value.length - 1).split(',').map(item => item.trim());
+        }
+      } else {
+        currentMetadata[key] = value;
+      }
+    }
+  });
+  
+  // 更新内容をマージ
+  const updatedMetadata = { ...currentMetadata };
+  Object.keys(updates).forEach(key => {
+    if (key === 'due_date' || key === 'dueDate') {
+      updatedMetadata['due_date'] = updates[key as keyof typeof updates] as string;
+    } else if (key !== 'description') {
+      updatedMetadata[key] = updates[key as keyof typeof updates];
+    }
+  });
+  
+  // メタデータ文字列を生成
+  let newMetadataStr = '---\n';
+  Object.keys(updatedMetadata).forEach(key => {
+    let value = updatedMetadata[key];
+    if (key === 'tags') {
+      value = JSON.stringify(value);
+    }
+    newMetadataStr += `${key}: ${value}\n`;
+  });
+  newMetadataStr += '---\n';
+  
+  // 本文を更新（説明が指定されている場合）
+  let newBodyContent = bodyContent;
+  
+  if (updates.description) {
+    // マークダウンの本文から説明部分を検出して置換
+    const titleMatch = bodyContent.match(/^# (.*?)(?:\n|$)/);
+    if (titleMatch) {
+      const title = titleMatch[1];
+      
+      // 元の説明部分を探す（「## 備忘録」セクションの内容）
+      const descriptionRegex = /## 備忘録\n([\s\S]*?)(?=\n##|$)/;
+      const descriptionMatch = bodyContent.match(descriptionRegex);
+      
+      if (descriptionMatch) {
+        // 「## 備忘録」セクションがある場合、その内容を置換
+        newBodyContent = bodyContent.replace(
+          descriptionRegex, 
+          `## 備忘録\n${updates.description}\n\n`
+        );
+      } else {
+        // 「## 備忘録」セクションがない場合、タイトルの後に追加
+        newBodyContent = bodyContent.replace(
+          /^# .*?\n/, 
+          `# ${updatedMetadata.title}\n\n## 備忘録\n${updates.description}\n\n`
+        );
+      }
+    }
+  }
+  
+  // タイトルの更新（タイトルが変更されている場合）
+  if (updates.title && updates.title !== currentMetadata.title) {
+    newBodyContent = newBodyContent.replace(/^# .*?\n/, `# ${updates.title}\n`);
+  }
+  
+  // 更新内容を追記（進捗セクションがある場合）
+  const today = getTodayString();
+  const progressRegex = /## 進捗\n([\s\S]*?)(?=\n##|$)/;
+  const progressMatch = newBodyContent.match(progressRegex);
+  
+  if (progressMatch) {
+    // 更新内容の説明を生成
+    let updateDescription = '';
+    if (updates.title && updates.title !== currentMetadata.title) {
+      updateDescription += `タイトルを「${currentMetadata.title}」から「${updates.title}」に変更`;
+    }
+    if (updates.priority && updates.priority !== currentMetadata.priority) {
+      if (updateDescription) updateDescription += '、';
+      updateDescription += `優先度を「${currentMetadata.priority}」から「${updates.priority}」に変更`;
+    }
+    if (updates.due_date && updates.due_date !== currentMetadata.due_date) {
+      if (updateDescription) updateDescription += '、';
+      updateDescription += `期限を${updates.due_date ? `「${updates.due_date}」に` : '削除'}`;
+    }
+    if (!updateDescription) {
+      updateDescription = 'タスクを更新';
+    }
+    
+    // 進捗セクションに追記
+    newBodyContent = newBodyContent.replace(
+      progressRegex,
+      `## 進捗\n${progressMatch[1]}- ${today}: ${updateDescription}\n`
+    );
+  }
+  
+  // 更新したファイル内容を書き込む
+  fs.writeFileSync(filePath, newMetadataStr + newBodyContent, 'utf8');
 } 

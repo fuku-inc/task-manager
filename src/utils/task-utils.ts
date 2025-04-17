@@ -11,7 +11,7 @@ import {
 } from '../types/Task';
 
 // ディレクトリパス
-const TASK_DIR = path.join(process.cwd(), 'tasks');
+const TASK_DIR = process.env.TASK_DIR || path.join(process.cwd(), 'tasks');
 const TODO_DIR = path.join(TASK_DIR, 'todo');
 const WIP_DIR = path.join(TASK_DIR, 'wip');
 const COMPLETED_DIR = path.join(TASK_DIR, 'completed');
@@ -150,6 +150,7 @@ export function changeTaskStatus(taskFilePath: string, newStatus: 'wip' | 'compl
 export function listTasks(status: TaskStatus | 'all' = 'all'): TaskFile[] {
   let tasks: TaskFile[] = [];
   
+  // todoディレクトリのタスクを取得
   if (status === 'all' || status === 'todo') {
     if (fs.existsSync(TODO_DIR)) {
       const todoTasks = fs.readdirSync(TODO_DIR)
@@ -162,6 +163,7 @@ export function listTasks(status: TaskStatus | 'all' = 'all'): TaskFile[] {
     }
   }
   
+  // wipディレクトリのタスクを取得
   if (status === 'all' || status === 'wip') {
     if (fs.existsSync(WIP_DIR)) {
       const wipTasks = fs.readdirSync(WIP_DIR)
@@ -174,24 +176,29 @@ export function listTasks(status: TaskStatus | 'all' = 'all'): TaskFile[] {
     }
   }
   
+  // completedディレクトリのタスクを取得
   if (status === 'all' || status === 'completed') {
     if (fs.existsSync(COMPLETED_DIR)) {
       let completedTasks: TaskFile[] = [];
       
       // 日付ディレクトリをスキャン
-      fs.readdirSync(COMPLETED_DIR).forEach(dateDir => {
+      const dateDirs = fs.readdirSync(COMPLETED_DIR);
+      for (const dateDir of dateDirs) {
         const datePath = path.join(COMPLETED_DIR, dateDir);
+        
         if (fs.statSync(datePath).isDirectory()) {
-          const dateTasks = fs.readdirSync(datePath)
-            .filter(file => file.endsWith('.md'))
-            .map(file => ({ 
-              path: path.join(datePath, file),
-              status: 'completed' as TaskStatus,
-              completedDate: dateDir
-            }));
+          const dateFiles = fs.readdirSync(datePath)
+            .filter(file => file.endsWith('.md'));
+          
+          const dateTasks = dateFiles.map(file => ({
+            path: path.join(datePath, file),
+            status: 'completed' as TaskStatus,
+            completedDate: dateDir
+          }));
+          
           completedTasks = completedTasks.concat(dateTasks);
         }
-      });
+      }
       
       tasks = tasks.concat(completedTasks);
     }

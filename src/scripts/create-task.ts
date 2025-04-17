@@ -1,84 +1,118 @@
 #!/usr/bin/env ts-node
 
-import * as readline from 'readline';
+import path from 'path';
 import { createTask } from '../utils/task-utils';
-import { TaskPriority, TaskCreateData } from '../types/Task';
+import * as readline from 'readline';
+import * as fs from 'fs';
+import { program } from 'commander';
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+// コマンドライン引数の設定
+program
+  .option('-t, --title <title>', 'タスクのタイトル')
+  .option('-d, --description <description>', 'タスクの詳細説明')
+  .option('-p, --priority <priority>', 'タスクの優先度 (high/medium/low)', 'medium')
+  .option('--project <project>', 'プロジェクト名')
+  .option('--tags <tags>', 'カンマ区切りのタグリスト')
+  .option('--due-date <due-date>', '期限日 (YYYY-MM-DD)')
+  .option('-i, --interactive', 'インタラクティブモードで実行');
+
+program.parse(process.argv);
+
+const options = program.opts();
 
 /**
- * ユーザー入力を取得する
- * @param prompt プロンプト
- * @returns ユーザー入力
+ * インタラクティブモードでの入力プロンプト
+ * @param rl readlineインターフェース
+ * @param prompt 表示するプロンプト
+ * @param defaultValue デフォルト値
  */
-function askQuestion(prompt: string): Promise<string> {
+async function prompt(rl: readline.Interface, prompt: string, defaultValue: string = ''): Promise<string> {
   return new Promise((resolve) => {
-    rl.question(prompt, (answer) => {
-      resolve(answer);
+    rl.question(`${prompt}${defaultValue ? ` (${defaultValue})` : ''}: `, (answer) => {
+      resolve(answer || defaultValue);
     });
   });
 }
 
 /**
+ * インタラクティブモードでタスクを作成
+ */
+async function createTaskInteractively(): Promise<void> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  try {
+    const title = await prompt(rl, 'タスクのタイトル');
+    if (!title) {
+      console.error('タイトルは必須です');
+      process.exit(1);
+    }
+
+    const description = await prompt(rl, 'タスクの詳細説明 (省略可)');
+    const priority = await prompt(rl, '優先度 (high/medium/low)', 'medium');
+    const project = await prompt(rl, 'プロジェクト名 (省略可)');
+    const tagsInput = await prompt(rl, 'タグ (カンマ区切り、省略可)');
+    const due_date = await prompt(rl, '期限日 (YYYY-MM-DD形式、省略可)');
+
+    const tags = tagsInput ? tagsInput.split(',').map((tag: string) => tag.trim()) : [];
+
+    const taskId = createTask({
+      title,
+      description,
+      priority: priority as 'high' | 'medium' | 'low',
+      project,
+      tags,
+      due_date
+    });
+
+    console.log(`タスクが作成されました: ${taskId}`);
+  } finally {
+    rl.close();
+  }
+}
+
+/**
+ * コマンドライン引数からタスクを作成
+ */
+function createTaskFromArgs(): void {
+  const { title, description, priority, project, tags, dueDate } = options;
+
+  if (!title) {
+    console.error('タイトルは必須です。--title オプションを指定してください。');
+    process.exit(1);
+  }
+
+  const tagsArray = tags ? tags.split(',').map((tag: string) => tag.trim()) : [];
+
+  const taskId = createTask({
+    title,
+    description: description || '',
+    priority: (priority || 'medium') as 'high' | 'medium' | 'low',
+    project: project || '',
+    tags: tagsArray,
+    due_date: dueDate || ''
+  });
+
+  console.log(`タスクが作成されました: ${taskId}`);
+}
+
+/**
  * メイン関数
  */
-async function main() {
-  console.log('=== 新規タスク作成 ===');
-  
-  // タスク情報の入力
-  const title = await askQuestion('タイトル: ');
-  if (!title) {
-    console.error('タイトルは必須です');
-    rl.close();
-    return;
+async function main(): Promise<void> {
+  if (options.interactive || Object.keys(options).length <= 1) {
+    // interactiveオプションが指定されているか、他のオプションが指定されていない場合
+    await createTaskInteractively();
+  } else {
+    // コマンドラインオプションからタスクを作成
+    createTaskFromArgs();
   }
-  
-  const description = await askQuestion('説明 (省略可): ');
-  
-  const priorityInput = await askQuestion('優先度 (high/medium/low, デフォルト: medium): ');
-  const priority = ['high', 'medium', 'low'].includes(priorityInput) 
-    ? priorityInput as TaskPriority 
-    : 'medium';
-  
-  const projectInput = await askQuestion('プロジェクト名 (省略可): ');
-  const project = projectInput || 'default';
-  
-  const dueDateInput = await askQuestion('期限 (YYYY-MM-DD, 省略可): ');
-  let dueDate = '';
-  if (dueDateInput) {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (dateRegex.test(dueDateInput)) {
-      dueDate = dueDateInput;
-    } else {
-      console.log('期限の形式が正しくないため、空白として設定します');
-    }
-  }
-  
-  const tagsInput = await askQuestion('タグ (カンマ区切り, 省略可): ');
-  const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()) : [];
-  
-  // タスクの作成
-  const taskData: TaskCreateData = {
-    title,
-    description,
-    priority,
-    project,
-    due_date: dueDate,
-    tags
-  };
-  
-  try {
-    const filePath = createTask(taskData);
-    console.log(`タスクが作成されました: ${filePath}`);
-  } catch (error) {
-    console.error('タスク作成中にエラーが発生しました:', error);
-  }
-  
-  rl.close();
 }
 
 // スクリプト実行
-main(); 
+main().catch(error => {
+  console.error('エラーが発生しました:', error);
+  process.exit(1);
+}); 

@@ -331,4 +331,16 @@ export function searchTasks(criteria: TaskSearchCriteria = {}): TaskInfo[] {
       path: taskFile.path
     };
   });
+}
+
+/**
+ * タスクファイルを削除する
+ * @param filePath タスクファイルのパス
+ */
+export function deleteTaskFile(filePath: string): void {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`タスクファイル ${filePath} が見つかりません`);
+  }
+  
+  fs.unlinkSync(filePath);
 } 

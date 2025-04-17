@@ -141,4 +141,33 @@ describe('Core Tasks', () => {
       await expect(tasks.completeTask('task-123')).rejects.toThrow('タスク "task-123" は作業中ではないため完了にできません');
     });
   });
+
+  describe('deleteTask', () => {
+    it('タスクを削除する', async () => {
+      const mockTask = {
+        path: '/tasks/todo/task.md',
+        status: 'todo' as const
+      };
+      
+      const mockTasks = [mockTask];
+      const mockMetadata = { id: 'task-123' };
+      
+      (taskUtils.listTasks as jest.Mock).mockReturnValue(mockTasks);
+      (taskUtils.parseTaskMetadata as jest.Mock).mockReturnValue(mockMetadata);
+      const deleteTaskFileMock = jest.fn();
+      (taskUtils as any).deleteTaskFile = deleteTaskFileMock;
+
+      await tasks.deleteTask('task-123');
+
+      expect(taskUtils.listTasks).toHaveBeenCalledWith('all');
+      expect(taskUtils.parseTaskMetadata).toHaveBeenCalledWith(mockTask.path);
+      expect(deleteTaskFileMock).toHaveBeenCalledWith(mockTask.path);
+    });
+
+    it('タスクが見つからない場合はエラーをスローする', async () => {
+      (taskUtils.listTasks as jest.Mock).mockReturnValue([]);
+
+      await expect(tasks.deleteTask('non-existent')).rejects.toThrow('タスク "non-existent" が見つかりません');
+    });
+  });
 }); 

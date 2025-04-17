@@ -107,8 +107,26 @@ export async function completeTask(id: string): Promise<void> {
  * @param id タスクID
  */
 export async function deleteTask(id: string): Promise<void> {
-  // 実装が必要
-  throw new Error('この機能はまだ実装されていません');
+  // 全タスクを取得
+  const allTasks = taskUtils.listTasks('all');
+  
+  // 指定されたIDのタスクを検索
+  const targetTask = allTasks.find(task => {
+    try {
+      const metadata = taskUtils.parseTaskMetadata(task.path);
+      return metadata.id === id;
+    } catch {
+      return false;
+    }
+  });
+
+  // タスクが見つからない場合はエラー
+  if (!targetTask) {
+    throw new Error(`タスク "${id}" が見つかりません`);
+  }
+
+  // タスクファイルを削除
+  taskUtils.deleteTaskFile(targetTask.path);
 }
 
 /**

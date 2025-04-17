@@ -141,6 +141,53 @@ export async function updateTask(id: string, updates: {
   dueDate?: Date;
   tags?: string[];
 }): Promise<void> {
-  // 実装が必要
-  throw new Error('この機能はまだ実装されていません');
+  // 更新内容が空の場合はエラー
+  if (Object.keys(updates).length === 0) {
+    throw new Error('更新内容が指定されていません');
+  }
+  
+  // 全タスクを取得
+  const allTasks = taskUtils.listTasks('all');
+  
+  // 指定されたIDのタスクを検索
+  const targetTask = allTasks.find(task => {
+    try {
+      const metadata = taskUtils.parseTaskMetadata(task.path);
+      return metadata.id === id;
+    } catch {
+      return false;
+    }
+  });
+
+  // タスクが見つからない場合はエラー
+  if (!targetTask) {
+    throw new Error(`タスク "${id}" が見つかりません`);
+  }
+  
+  // 更新データを準備
+  const updateData: Record<string, any> = {};
+  
+  // 各フィールドの処理
+  if (updates.title) {
+    updateData.title = updates.title;
+  }
+  
+  if (updates.description) {
+    updateData.description = updates.description;
+  }
+  
+  if (updates.priority) {
+    updateData.priority = updates.priority;
+  }
+  
+  if (updates.tags) {
+    updateData.tags = updates.tags;
+  }
+  
+  if (updates.dueDate !== undefined) {
+    updateData.due_date = updates.dueDate ? updates.dueDate.toISOString().split('T')[0] : '';
+  }
+  
+  // タスクファイルを更新
+  taskUtils.updateTaskFile(targetTask.path, updateData);
 } 

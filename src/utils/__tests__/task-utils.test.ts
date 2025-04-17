@@ -101,12 +101,14 @@ describe('Task Utils', () => {
 
   describe('listTasks', () => {
     it('タスク一覧を取得する', () => {
-      // タスクを3つ作成
-      createTask({ title: 'Todo Task' });
+      // タスクを2つ作成
+      createTask({ title: 'Todo Task 1' });
+      createTask({ title: 'Todo Task 2' });
       
       const todoTasks = listTasks('todo');
-      expect(todoTasks.length).toBe(1);
+      expect(todoTasks.length).toBe(2);
       expect(todoTasks[0].status).toBe('todo');
+      expect(todoTasks[1].status).toBe('todo');
 
       // 1つをWIPに変更
       const wipFilePath = changeTaskStatus(todoTasks[0].path, 'wip');
@@ -114,6 +116,9 @@ describe('Task Utils', () => {
       const wipTasks = listTasks('wip');
       expect(wipTasks.length).toBe(1);
       expect(wipTasks[0].status).toBe('wip');
+      
+      const remainingTodoTasks = listTasks('todo');
+      expect(remainingTodoTasks.length).toBe(1);
       
       // 全タスク取得
       const allTasks = listTasks('all');

@@ -1,18 +1,15 @@
 #!/usr/bin/env ts-node
 
-import path from 'path';
 import { program } from 'commander';
 import { searchTasks } from '../utils/task-utils';
-import { TaskStatus, TaskInfo, TaskSearchCriteria } from '../types/Task';
+import { TaskInfo, TaskSearchCriteria } from '../types/Task';
 
 // コマンドライン引数の設定
 program
-  .option('--todo', '未着手のタスクのみ表示')
-  .option('--wip', '作業中のタスクのみ表示')
-  .option('--completed', '完了したタスクのみ表示')
   .option('--priority <priority>', '優先度でフィルタリング (high/medium/low)')
   .option('--project <project>', 'プロジェクト名でフィルタリング')
   .option('--tag <tag>', 'タグでフィルタリング')
+  .option('--status <status>', 'ステータスでフィルタリング (todo/wip/completed)')
   .option('--due-before <date>', '指定日以前の期限でフィルタリング (YYYY-MM-DD)')
   .option('--due-after <date>', '指定日以降の期限でフィルタリング (YYYY-MM-DD)')
   .option('--text <text>', 'タイトルと説明から検索')
@@ -27,7 +24,7 @@ const options = program.opts();
  * @param status ステータス
  * @returns フォーマットされたステータス
  */
-function formatStatus(status: TaskStatus): string {
+function formatStatus(status: string): string {
   switch (status) {
     case 'todo': return '未着手';
     case 'wip': return '進行中';
@@ -56,7 +53,7 @@ function formatPriority(priority: string): string {
  */
 function displayTasks(tasks: TaskInfo[]): void {
   if (tasks.length === 0) {
-    console.log('タスクはありません。');
+    console.log('条件に一致するタスクはありません。');
     return;
   }
 
@@ -82,7 +79,7 @@ function displayTasks(tasks: TaskInfo[]): void {
  */
 function displayTasksByProject(tasks: TaskInfo[]): void {
   if (tasks.length === 0) {
-    console.log('タスクはありません。');
+    console.log('条件に一致するタスクはありません。');
     return;
   }
 
@@ -120,12 +117,7 @@ function main() {
   // 検索条件を構築
   const criteria: TaskSearchCriteria = {};
   
-  // ステータスの指定
-  if (options.todo) criteria.status = 'todo';
-  else if (options.wip) criteria.status = 'wip';
-  else if (options.completed) criteria.status = 'completed';
-  
-  // その他の条件
+  if (options.status) criteria.status = options.status;
   if (options.priority) criteria.priority = options.priority;
   if (options.project) criteria.project = options.project;
   if (options.tag) criteria.tag = options.tag;

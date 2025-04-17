@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "task-manager": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-p",
+        "3000:3000",
+        "-v",
+        "${PWD}/tasks:/app/tasks",
+        "-e",
+        "TASK_DIR=/app/tasks",
+        "task-manager-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

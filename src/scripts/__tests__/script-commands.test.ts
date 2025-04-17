@@ -51,7 +51,7 @@ describe('コマンドラインスクリプトテスト', () => {
     fs.emptyDirSync(TEST_COMPLETED_DIR);
   });
 
-  function runScript(scriptName: string, args: string[] = []): { stdout: string, stderr: string, exitCode: number } {
+  function runScript(scriptName: string, args: string[] = []): { stdout: string, stderr: string, exitCode: number | null } {
     const result = spawnSync('node', [
       '-r', 'ts-node/register',
       path.join(process.cwd(), 'src', 'scripts', `${scriptName}.ts`),

@@ -1,5 +1,26 @@
 import * as fs from 'fs-extra';
-import * as path from 'path';
+import * as originalPath from 'path';
+
+// テスト用の一時ディレクトリパスを定義
+const TEST_TASK_DIR = originalPath.join(process.cwd(), 'tasks-test');
+const TEST_TODO_DIR = originalPath.join(TEST_TASK_DIR, 'todo');
+const TEST_WIP_DIR = originalPath.join(TEST_TASK_DIR, 'wip');
+const TEST_COMPLETED_DIR = originalPath.join(TEST_TASK_DIR, 'completed');
+
+// pathモジュールをモック
+jest.mock('path', () => {
+  const originalModule = jest.requireActual('path');
+  return {
+    ...originalModule,
+    join: (...args: string[]) => {
+      if (args[1] === 'tasks' && args.length === 2) {
+        return TEST_TASK_DIR;
+      }
+      return originalModule.join(...args);
+    }
+  };
+});
+
 import {
   createTask,
   listTasks,
@@ -9,26 +30,6 @@ import {
   generateTaskId,
   getTodayString
 } from '../task-utils';
-
-// テスト用の一時ディレクトリパス
-const TEST_TASK_DIR = path.join(process.cwd(), 'tasks-test');
-const TEST_TODO_DIR = path.join(TEST_TASK_DIR, 'todo');
-const TEST_WIP_DIR = path.join(TEST_TASK_DIR, 'wip');
-const TEST_COMPLETED_DIR = path.join(TEST_TASK_DIR, 'completed');
-
-// task-utils内のTASK_DIRパスを上書きするためのモック
-jest.mock('path', () => {
-  const originalPath = jest.requireActual('path');
-  return {
-    ...originalPath,
-    join: (...args: string[]) => {
-      if (args[1] === 'tasks' && args.length === 2) {
-        return TEST_TASK_DIR;
-      }
-      return originalPath.join(...args);
-    }
-  };
-});
 
 describe('Task Utils', () => {
   beforeAll(() => {

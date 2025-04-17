@@ -171,6 +171,76 @@ npm test src/mcp/__tests__/dashboard.test.ts
 npm run build
 ```
 
+## GitHub MCP設定
+
+このプロジェクトではGitHub MCPを使ってIssue管理や開発タスクの自動化を行っています。以下の手順で設定してください。
+
+### 前提条件
+
+- Docker Desktop（または同等のDockerランタイム環境）がインストールされていること
+- GitHubアカウントを持っていること
+- Cursorなどのテキストエディタ/IDE（MCP対応）を使用していること
+
+### 設定手順
+
+1. GitHubでPersonal Access Token (PAT)を作成
+   - GitHubアカウント設定 > Developer settings > Personal access tokens > Generate new token
+   - 必要な権限: `repo`, `workflow`, `read:org`
+   - トークンをコピーしておく
+
+2. **重要**: リポジトリ内の`.mcp/configs/github.json`はテンプレートです
+   - このファイルをMCPホストの設定ディレクトリにコピーします
+   - Cursorの場合: `~/.cursor/mcp.json`
+
+3. コピーした設定ファイルを編集し、以下の項目を自分の環境に合わせて変更
+   - `mcpServers.github.env.GITHUB_PERSONAL_ACCESS_TOKEN`: 作成したPAT
+   - `config.owner`: あなたのGitHubユーザー名またはOrganization名
+   - `config.repo`: リポジトリ名
+
+4. 変更を保存
+
+### 注意事項
+
+- 機密情報（トークンなど）は絶対にリポジトリ内のファイルに保存しないでください
+- 各開発者は自分のローカル環境のMCPホスト設定にのみトークンを設定してください
+
+### Docker設定の確認
+
+GitHub MCPはDockerコンテナとして実行されます。以下のコマンドでDockerが正しく設定されているか確認できます：
+
+```bash
+docker --version
+```
+
+### 利用例
+
+```typescript
+// GitHubのIssueを取得する例
+import { mcp_github_list_issues } from './mcp';
+
+async function getOpenIssues() {
+  try {
+    const result = await mcp_github_list_issues({
+      owner: 'your-username',  // MCPホスト設定から自動読み込みされる
+      repo: 'your-repo',       // MCPホスト設定から自動読み込みされる
+      state: 'open'
+    });
+    
+    console.log('Open issues:', result);
+  } catch (error) {
+    console.error('Error fetching issues:', error);
+  }
+}
+```
+
+### MCP設定ファイル
+
+すべてのMCP設定テンプレートは`.mcp/configs/`ディレクトリに保存されています。現在は以下のMCPが利用可能です：
+
+- GitHub MCP: `.mcp/configs/github.json`
+
+詳しい説明は`.mcp/README.md`を参照してください。
+
 ## ライセンス
 
 MIT 

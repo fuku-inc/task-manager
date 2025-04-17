@@ -8,7 +8,7 @@
     "start": "node dist/src/mcp/index.js",
     "dev": "ts-node-dev --respawn src/mcp/index.ts",
     "test": "jest",
-    "create-task": "ts-node scripts/create-task.ts",
+    "create-task": "ts-node src/scripts/create-task.ts",
     "change-status": "ts-node src/scripts/change-task-status.ts",
     "list-tasks": "ts-node src/scripts/list-tasks.ts"
   },

@@ -1,3 +1,5 @@
 - [あなたの仕事に“AI秘書”を。ノンエンジニアでもOKなCursorエージェント超入門｜miyatti@エクスプラザ](https://note.com/miyatad/n/nae304a0024af)
 - [Cursorエージェント講座 超入門＋実践編 | ドクセル](https://docswell.com/s/miyatti/Z6VDGV-2025-03-30-192815#p1)
 - [Cursorエージェント講座 超応用編 - AIエージェントに「心」を理解させられるか？ - | ドクセル](https://docswell.com/s/miyatti/KN182G-2025-03-21-202746#p1)
+- [github/github-mcp-server: GitHub's official MCP Server](https://github.com/github/github-mcp-server)
+- [GitHub MCP Serverを使って、Cursorからissueを操作してみる](https://zenn.dev/ttks/articles/df962528d94995)

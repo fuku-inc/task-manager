@@ -5,7 +5,7 @@ import { cors } from 'hono/cors';
 import * as taskAdapter from './adapters/taskAdapter';
 
 // MCPサーバーの設定
-const app = new Hono();
+export const app = new Hono();
 app.use(logger());
 app.use(cors());
 

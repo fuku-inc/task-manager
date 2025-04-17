@@ -8,23 +8,23 @@ import {
   searchTasks
 } from '../utils/task-utils';
 
-// テスト用の一時ディレクトリパス
+// テスト用の一時ディレクトリパスを定義
 const TEST_TASK_DIR = path.join(process.cwd(), 'tasks-test-integration');
 const TEST_TODO_DIR = path.join(TEST_TASK_DIR, 'todo');
 const TEST_WIP_DIR = path.join(TEST_TASK_DIR, 'wip');
 const TEST_COMPLETED_DIR = path.join(TEST_TASK_DIR, 'completed');
 
-// task-utils内のTASK_DIRパスを上書きするためのモック
+// pathモジュールをモック
+const originalPath = jest.requireActual('path');
 jest.mock('path', () => {
-  const originalPath = jest.requireActual('path');
   return {
     ...originalPath,
-    join: (...args: string[]) => {
+    join: jest.fn((...args: string[]) => {
       if (args[1] === 'tasks' && args.length === 2) {
         return TEST_TASK_DIR;
       }
       return originalPath.join(...args);
-    }
+    })
   };
 });
 
